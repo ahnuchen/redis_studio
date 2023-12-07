@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:redis_studio/config/translations/tw_CN/tw_cn_translation.dart';
+import 'package:redis_studio/config/translations/zh_CN/zh_cn_translation.dart';
 
 import '../../app/data/local/my_shared_pref.dart';
-import 'ar_AR/ar_ar_translation.dart';
 import 'en_US/en_us_translation.dart';
 
 class LocalizationService extends Translations {
@@ -18,25 +19,28 @@ class LocalizationService extends Translations {
 
   // default language
   // todo change the default language
-  static Locale defaultLanguage = supportedLanguages['en']!;
+  static Locale defaultLanguage = supportedLanguages['zh']!;
 
   // supported languages
   static Map<String,Locale> supportedLanguages = {
     'en' : const Locale('en', 'US'),
-    'ar' : const Locale('ar', 'AR'),
+    'zh' : const Locale('zh', 'CN'),
+    'tw' : const Locale('tw', 'CN'),
   };
 
   // supported languages fonts family (must be in assets & pubspec yaml) or you can use google fonts
   static Map<String,TextStyle> supportedLanguagesFontsFamilies = {
     // todo add your English font families (add to assets/fonts, pubspec and name it here) default is poppins for english and cairo for arabic
     'en' : const TextStyle(fontFamily: 'Poppins'),
-    'ar': const TextStyle(fontFamily: 'Cairo'),
+    'zh': const TextStyle(fontFamily: 'Cairo'),
+    'tw': const TextStyle(fontFamily: 'Cairo'),
   };
 
   @override
   Map<String, Map<String, String>> get keys => {
     'en_US': enUs,
-    'ar_AR': arAR,
+    'zh_CN': zhCN,
+    'tw_CN': twCN,
   };
 
   /// check if the language is supported

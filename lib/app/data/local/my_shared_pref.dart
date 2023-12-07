@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:redis_studio/app/data/models/connections_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../config/translations/localization_service.dart';
@@ -11,9 +12,10 @@ class MySharedPref {
   static late SharedPreferences _sharedPreferences;
 
   // STORING KEYS
-  static const String _fcmTokenKey = 'fcm_token';
   static const String _currentLocalKey = 'current_local';
   static const String _lightThemeKey = 'is_theme_light';
+  static const String _fontScaleKey = 'current_font_scale';
+  static const String _connectionsKey = 'saved_connections';
 
   /// init get storage services
   static Future<void> init() async {
@@ -22,6 +24,13 @@ class MySharedPref {
 
   static setStorage(SharedPreferences sharedPreferences) {
     _sharedPreferences = sharedPreferences;
+  }
+
+  static String? getStorage(String key) {
+    return _sharedPreferences.getString(key);
+  }
+  static String? getCurrentLocaleString() {
+    return _sharedPreferences.getString(_currentLocalKey);
   }
 
   /// set theme current type as light theme
@@ -46,13 +55,23 @@ class MySharedPref {
       return LocalizationService.supportedLanguages[langCode]!;
   }
 
-  /// save generated fcm token
-  static Future<void> setFcmToken(String token) =>
-      _sharedPreferences.setString(_fcmTokenKey, token);
+  static setFontScale(scale) => _sharedPreferences.setDouble(_fontScaleKey, scale);
 
-  /// get authorization token
-  static String? getFcmToken() =>
-      _sharedPreferences.getString(_fcmTokenKey);
+  static getFontScale() => _sharedPreferences.getDouble(_fontScaleKey) ?? 1.0;
+
+  static saveConnections(ConnectionsModel connectionsModel){
+    _sharedPreferences.setString(_connectionsKey, connectionsModel.toRawJson());
+  }
+
+  static ConnectionsModel getSavedConnections(){
+    var str = _sharedPreferences.getString(_connectionsKey);
+    if(str == null){
+      return ConnectionsModel(connections: []);
+    } else {
+      return ConnectionsModel.fromRawJson(str);
+    }
+  }
+
 
   /// clear all data from shared pref
   static Future<void> clear() async => await _sharedPreferences.clear();

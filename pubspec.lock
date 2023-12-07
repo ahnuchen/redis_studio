@@ -535,6 +535,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.2.3"
+  redis:
+    dependency: "direct main"
+    description:
+      name: redis
+      sha256: "4a8218ef7b0642ff499147c7a105591208259e2f55f07db0101ace7f82f66cf9"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "4.0.0"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -636,6 +644,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.10.0"
+  split_view:
+    dependency: "direct main"
+    description:
+      name: split_view
+      sha256: "7ad0e1c40703901aa1175fd465dec5e965b55324f9cc8e51526479a4a96d01a4"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "3.2.1"
   stack_trace:
     dependency: transitive
     description:
