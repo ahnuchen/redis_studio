@@ -17,6 +17,11 @@ dependencies:
     sdk: flutter
   redis: ^4.0.0
   split_view: ^3.2.1
+  context_menus: ^1.0.2
+  expandable: ^5.0.1
+  oktoast: ^3.4.0
+  tabpanel: ^0.2.4 # 打开的keys
+  flutter_tree_pro: ^0.0.7
 dev_dependencies:
   mockito:
   flutter_lints:

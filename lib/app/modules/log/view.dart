@@ -8,6 +8,10 @@ class LogPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return Scaffold(
+        appBar: AppBar(
+          title: Text('log'),
+        ),
+        body: Placeholder());
   }
 }

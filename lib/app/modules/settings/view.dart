@@ -77,6 +77,7 @@ class SettingsPage extends GetView<SettingsLogic> {
                             Padding(padding: EdgeInsets.only(bottom: 10)),
                             DropdownButton(
                                 value: controller.localeKey,
+                                focusColor: Colors.transparent,
                                 items: buildMenuItems(),
                                 onChanged: (se) {
                                   if (se!.isNotEmpty) {

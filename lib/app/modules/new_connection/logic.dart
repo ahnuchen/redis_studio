@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:redis_studio/app/data/models/connections_model.dart';
-import 'package:redis_studio/app/modules/home/logic.dart';
+import 'package:redis_studio/app/modules/home/components/connections/logic.dart';
 
 class NewConnectionLogic extends GetxController {
-  final homeLogic = Get.find<HomeLogic>();
+  final connectionsLogic = Get.find<ConnectionsLogic>();
 
   TextEditingController hostInputController = TextEditingController();
   TextEditingController portInputController = TextEditingController();
@@ -23,7 +23,7 @@ class NewConnectionLogic extends GetxController {
         port: port == '' ? 6379 : int.tryParse(port));
     print('cfg:');
     print(cfg.toRawJson());
-    homeLogic.addConnectionConfig(cfg);
+    connectionsLogic.addConnectionConfig(cfg);
     Get.back();
   }
 
