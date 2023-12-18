@@ -414,12 +414,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _checkNode(String key, CheckStatus status) {
-    print(key);
-    print(status);
+    // print(key);
+    // print(status);
     setState(() {
-      // Node? node = _treeViewController.getNode(key);
-      var updated = _treeViewController.toggleCheckNode(key);
-      _treeViewController = _treeViewController.copyWith(children: updated);
+      _treeViewController = _treeViewController.withToggleCheckNode(key);
+      _treeViewController = _treeViewController.withUpdateParent(key);
     });
   }
 

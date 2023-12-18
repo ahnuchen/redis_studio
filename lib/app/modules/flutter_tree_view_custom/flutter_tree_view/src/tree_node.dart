@@ -37,7 +37,6 @@ class _TreeNodeState extends State<TreeNode>
   late AnimationController _controller;
   late Animation<double> _heightFactor;
   bool _isExpanded = false;
-  CheckStatus _isChecked = CheckStatus.none;
 
   @override
   void initState() {
@@ -46,7 +45,6 @@ class _TreeNodeState extends State<TreeNode>
         AnimationController(duration: Duration(milliseconds: 200), vsync: this);
     _heightFactor = _controller.drive(_easeInTween);
     _isExpanded = widget.node.expanded;
-    _isChecked = widget.node.checkStatus;
     if (_isExpanded) _controller.value = 1.0;
   }
 
@@ -114,7 +112,7 @@ class _TreeNodeState extends State<TreeNode>
     TreeView? _treeView = TreeView.of(context);
     assert(_treeView != null, 'TreeView must exist in context');
     if (_treeView!.onNodeCheck != null) {
-      _treeView.onNodeCheck!(widget.node.key, _isChecked);
+      _treeView.onNodeCheck!(widget.node.key, widget.node.checkStatus);
     }
   }
 
@@ -141,7 +139,11 @@ class _TreeNodeState extends State<TreeNode>
                   expanded: widget.node.expanded,
                   themeData: _theme.expanderTheme,
                 ),
-                Icon( widget.node.expanded ? Icons.folder_open : Icons.folder, color: _theme.expanderTheme.color, size: _theme.expanderTheme.size,),
+                Icon(
+                  widget.node.expanded ? Icons.folder_open : Icons.folder,
+                  color: _theme.expanderTheme.color,
+                  size: _theme.expanderTheme.size,
+                ),
               ],
             ),
           )
@@ -222,7 +224,6 @@ class _TreeNodeState extends State<TreeNode>
     TreeView? _treeView = TreeView.of(context);
     assert(_treeView != null, 'TreeView must exist in context');
     TreeViewTheme _theme = _treeView!.theme;
-
     if (!_treeView!.allowCheck) {
       return Container();
     } else {
@@ -237,7 +238,7 @@ class _TreeNodeState extends State<TreeNode>
         _checkIcon = Icons.check_box_outline_blank;
       }
       return IconButton(
-        onPressed: () => _handleCheck(),
+        onPressed: _handleCheck,
         icon: Icon(
           _checkIcon,
           size: _theme.expanderTheme.size,

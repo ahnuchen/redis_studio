@@ -3,6 +3,7 @@ import 'dart:convert';
 const List<Map<String, dynamic>> US_STATES = [
   {
     "label": "A",
+    "checkStatus":"full",
     "children": [
       {"label": "Alabama", "key": "AL"},
       {"label": "Alaska", "key": "AK"},

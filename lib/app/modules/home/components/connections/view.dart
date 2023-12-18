@@ -9,16 +9,18 @@ class ConnectionsComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      height: context.height - 70,
-      child: ListView.builder(
-        itemBuilder: (ctx, index) {
-          var cfg = logic.connectionsConfig.connections[index];
-          return ConnectionItemComponent(cfg: cfg, key: Key(cfg.key!));
-        },
-        itemCount: logic.connectionsConfig.connections.length,
-      ),
-    );
+    return GetBuilder<ConnectionsLogic>(builder: (logic) {
+      return Container(
+        padding: const EdgeInsets.all(8.0),
+        height: context.height - 70,
+        child: ListView.builder(
+          itemBuilder: (ctx, index) {
+            var cfg = logic.connectionsConfig.connections[index];
+            return ConnectionItemComponent(cfg: cfg, key: Key(cfg.key!));
+          },
+          itemCount: logic.connectionsConfig.connections.length,
+        ),
+      );
+    });
   }
 }

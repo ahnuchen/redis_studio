@@ -47,7 +47,11 @@ class TreeViewController {
 
   /// Creates a copy of this controller but with the given fields
   /// replaced with the new values.
-  TreeViewController copyWith<T>({List<Node<T>>? children, String? selectedKey, List<String>? checkedKeys,}) {
+  TreeViewController copyWith<T>({
+    List<Node<T>>? children,
+    String? selectedKey,
+    List<String>? checkedKeys,
+  }) {
     return TreeViewController(
       children: children ?? this.children,
       selectedKey: selectedKey ?? this.selectedKey,
@@ -127,7 +131,8 @@ class TreeViewController {
   ///   controller = controller.withUpdateNode(key, newNode);
   /// });
   /// ```
-  TreeViewController withUpdateNode<T>(String key, Node<T> newNode, {Node? parent}) {
+  TreeViewController withUpdateNode<T>(String key, Node<T> newNode,
+      {Node? parent}) {
     List<Node> _data = updateNode<T>(key, newNode, parent: parent);
     return TreeViewController(
       children: _data,
@@ -171,6 +176,23 @@ class TreeViewController {
   /// ```
   TreeViewController withToggleNode<T>(String key, {Node? parent}) {
     List<Node> _data = toggleNode<T>(key, parent: parent);
+    return TreeViewController(
+      children: _data,
+      selectedKey: this.selectedKey,
+      checkedKeys: this.checkedKeys,
+    );
+  }
+
+  TreeViewController withToggleCheckNode<T>(String key, {Node? parent}) {
+    List<Node> _data = toggleCheckNode<T>(key, parent: parent);
+    return TreeViewController(
+      children: _data,
+      selectedKey: this.selectedKey,
+      checkedKeys: this.checkedKeys,
+    );
+  }
+  TreeViewController withUpdateParent<T>(String key, {Node? parent}) {
+    List<Node> _data = updateParent(key);
     return TreeViewController(
       children: _data,
       selectedKey: this.selectedKey,
@@ -283,7 +305,6 @@ class TreeViewController {
     }
     return _found;
   }
-
 
   /// Expands all node that are children of the parent node parameter. If no parent is passed, uses the root node as the parent.
   List<Node> expandAll({Node? parent}) {
@@ -457,73 +478,112 @@ class TreeViewController {
   }
 
 
+  /// Collapses a node and all of the node's ancestors without the need to
+  /// manually collapse each node.
+  List<Node> updateParent(String key) {
+    List<String> _ancestors = [];
+    String _currentKey = key;
 
+    _ancestors.add(_currentKey);
 
-  List<Node> toggleCheckNode<T>(String key, {Node? parent, CheckStatus? targetStatus}) {
-    List<Node> _children = parent == null ? this.children : parent.children;
-    // Iterator iter = _children.iterator;
-    Node? checkedNode;
-    var cls =  _children.map((Node child) {
-      if(child.key == key) {
-        checkedNode = child;
-        var status = targetStatus;
-        if(targetStatus == null) {
-          if(child.checkStatus == CheckStatus.full) {
-            status = CheckStatus.none;
-          } else {
-            status = CheckStatus.full;
-          }
-        }
-        if(child.isParent) {
-          return child.copyWith(
-            checkStatus: status,
-            children: child.children.map((Node _child) {
-              if(_child.isParent) {
-                return _child.copyWith(checkStatus: status, children: toggleCheckNode(_child.key, parent: _child,targetStatus: status));
-              } else {
-                return _child.copyWith(checkStatus: status);
-              }
-            }).toList()
-          );
-        } else {
-          return child.copyWith(checkStatus: status);
-        }
-      } else {
-        if (child.isParent) {
-          return child.copyWith(
-            children: toggleCheckNode<T>(
-              key,
-              parent: child,
-            ),
-          );
-        }
-        return child;
+    Node? _parent = this.getParent(_currentKey);
+    if (_parent != null) {
+      while (_parent!.key != _currentKey) {
+        _currentKey = _parent.key;
+        _ancestors.add(_currentKey);
+        _parent = this.getParent(_currentKey);
       }
-    }).toList();
-
-    var buildParent = Node(key: key, children: cls, label: '');
-    if(checkedNode == null) {
-      return cls;
+      TreeViewController _this = this;
+      _ancestors.forEach((String k) {
+        Node _node = _this.getNode(k)!;
+        if(_node.isParent) {
+          Node _updated = _node.copyWith(checkStatus: toggleParentNodeStatus(_node));
+          _this = _this.withUpdateNode(k, _updated);
+        }
+      });
+      return _this.children;
     }
-    var parentNode = getParent(checkedNode!.key, parent: buildParent);
-    if(parentNode != null) {
-      return updateParentNode(parentNode, cls);
-    }
-    return cls;
+    return this.children;
   }
 
-  List<Node> updateParentNode(Node node, List<Node> ls){
-    var checkStatusFull = ls.every((element) => element.checkStatus == CheckStatus.full);
-    var buildParent = Node(key: '', children: ls, label: '');
-    ls =  updateNode(node.key, node.copyWith(
-        checkStatus: checkStatusFull ? CheckStatus.full: CheckStatus.half
-    ), parent: buildParent);
-    var parent = getParent(node.key, parent: buildParent);
-    if(parent == null) {
-      return ls;
+  /// Updates an existing node identified by specified key. This method
+  /// returns a new list with the updated node.
+  // List<Node> updateParent<T>( List<Node<T>> list){
+  //   return list;
+  // }
+
+  CheckStatus toggleNodeStatus(CheckStatus status) {
+    if(status == CheckStatus.full) {
+      return CheckStatus.none;
     } else {
-      return updateParentNode(parent, ls);
+      return CheckStatus.full;
     }
+  }
+
+  /// Expands all node that are children of the parent node parameter. If no parent is passed, uses the root node as the parent.
+  List<Node> updateChildren({required CheckStatus status, required Node parent}) {
+    List<Node> _children = [];
+    Iterator iter = parent.children.iterator;
+    while (iter.moveNext()) {
+      Node child = iter.current;
+      if (child.isParent) {
+        _children.add(child.copyWith(
+          checkStatus: status,
+          children: this.updateChildren(status: status, parent: child),
+        ));
+      } else {
+        _children.add(child.copyWith(
+          checkStatus: status
+        ));
+      }
+    }
+    return _children;
+  }
+
+  /// Updates an existing node identified by specified key. This method
+  /// returns a new list with the updated node.
+  List<Node> toggleCheckNode<T>(String key, {Node? parent}) {
+    Node<T>? _node = getNode<T>(key, parent: parent);
+
+    var list;
+    var sts = toggleNodeStatus(_node!.checkStatus);
+
+    if (_node!.isParent) {
+      list = updateNode<T>(key,
+          _node!.copyWith(checkStatus: sts, children: updateChildren(status: sts, parent: _node)));
+    } else {
+      list = updateNode<T>(key,
+          _node!.copyWith(checkStatus: sts));
+    }
+    return list;
+  }
+
+  /// Updates an existing node identified by specified key. This method
+  /// returns a new list with the updated node.
+  CheckStatus toggleParentNodeStatus<T>(Node par) {
+    // Node<T>? _node = getNode<T>(key, parent: parent);
+    var children = par!.children;
+    var partChecked = false;
+    var selected = 0;
+    for (var i = 0; i < children.length; ++i) {
+      var o = children[i];
+      if (o.checkStatus == CheckStatus.full) {
+        selected++;
+      } else if (o.checkStatus == CheckStatus.half) {
+        partChecked = true;
+        break;
+      }
+    }
+    var partCheckStatus;
+    // 如果子孩子全都是选择的， 父节点就全选
+    if (selected == children.length) {
+      partCheckStatus = CheckStatus.full;
+    } else if (partChecked || (selected < children.length && selected > 0)) {
+      partCheckStatus = CheckStatus.half;
+    } else {
+      partCheckStatus = CheckStatus.none;
+    }
+    return partCheckStatus;
   }
 
   /// Toggles an existing node identified by specified key. This method
@@ -532,7 +592,6 @@ class TreeViewController {
     Node<T>? _node = getNode<T>(key, parent: parent);
     return updateNode<T>(key, _node!.copyWith(expanded: !_node.expanded));
   }
-
 
   /// Deletes an existing node identified by specified key. This method
   /// returns a new list with the specified node removed.

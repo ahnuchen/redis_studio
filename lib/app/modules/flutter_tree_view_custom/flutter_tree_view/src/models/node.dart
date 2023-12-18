@@ -38,7 +38,7 @@ class Node<T> {
   bool expanded;
 
   // if check this node
-  CheckStatus checkStatus;
+  final CheckStatus checkStatus;
 
   /// Generic data model that can be assigned to the [TreeNode]. This makes
   /// it useful to assign and retrieve data associated with the [TreeNode]
@@ -104,10 +104,21 @@ class Node<T> {
           .map((Map<String, dynamic> child) => Node.fromMap(child))
           .toList();
     }
+    var cs = CheckStatus.none;
+    if(map['checkStatus'] == 'full') {
+      cs = CheckStatus.full;
+    }
+    if(map['checkStatus'] == 'none') {
+      cs = CheckStatus.none;
+    }
+    if(map['checkStatus'] == 'half') {
+      cs = CheckStatus.half;
+    }
     return Node<T>(
       key: '$_key',
       label: _label,
       data: _data,
+      checkStatus: cs,
       expanded: Utilities.truthful(map['expanded']),
       parent: Utilities.truthful(map['parent']),
       children: _children,
