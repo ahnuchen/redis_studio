@@ -1,9 +1,11 @@
+import 'package:context_menus/context_menus.dart';
 import 'package:flutter/material.dart';
+// import 'package:get/get.dart';
 
 // import 'package:get/get.dart';
 import './stats.dart';
 import 'package:flutter/cupertino.dart';
-import './flutter_tree_view/flutter_treeview.dart';
+import '../../components/flutter_tree_view/flutter_treeview.dart';
 
 class FlutterTreeViewPage extends StatelessWidget {
   @override
@@ -24,7 +26,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late String _selectedNode;
-  late List<Node> _nodes;
+  late List<NodeModel> _nodes;
   late TreeViewController _treeViewController;
   bool docsOpen = true;
   bool deepExpanded = true;
@@ -54,43 +56,43 @@ class _MyHomePageState extends State<MyHomePage> {
   ExpanderPosition _expanderPosition = ExpanderPosition.start;
   ExpanderType _expanderType = ExpanderType.caret;
   ExpanderModifier _expanderModifier = ExpanderModifier.none;
-  bool _allowParentSelect = false;
-  bool _supportParentDoubleTap = false;
+  bool _allowCheck = false;
+  bool _supportParentSecondaryTap = false;
 
   @override
   void initState() {
     _nodes = [
-      Node(
+      NodeModel(
         label: 'documents',
         key: 'docs',
         expanded: docsOpen,
         icon: docsOpen ? Icons.folder_open : Icons.folder,
         children: [
-          Node(
+          NodeModel(
             label: 'personal',
             key: 'd3',
             checkStatus: CheckStatus.half,
             icon: Icons.input,
             iconColor: Colors.red,
             children: [
-              Node(
+              NodeModel(
                 checkStatus: CheckStatus.none,
                 label: 'Poems.docx',
                 key: 'pd1',
                 icon: Icons.insert_drive_file,
               ),
-              Node(
+              NodeModel(
                 checkStatus: CheckStatus.full,
                 label: 'Job Hunt',
                 key: 'jh1',
                 icon: Icons.input,
                 children: [
-                  Node(
+                  NodeModel(
                     label: 'Resume.docx',
                     key: 'jh1a',
                     icon: Icons.insert_drive_file,
                   ),
-                  Node(
+                  NodeModel(
                     label: 'Cover Letter.docx',
                     key: 'jh1b',
                     icon: Icons.insert_drive_file,
@@ -99,27 +101,27 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ],
           ),
-          Node(
+          NodeModel(
             label: 'Inspection.docx',
             key: 'd1',
 //          icon: Icons.insert_drive_file),
           ),
-          Node(label: 'Invoice.docx', key: 'd2', icon: Icons.insert_drive_file),
+          NodeModel(label: 'Invoice.docx', key: 'd2', icon: Icons.insert_drive_file),
         ],
       ),
-      Node(
+      NodeModel(
           label: 'MeetingReport.xls',
           key: 'mrxls',
           icon: Icons.insert_drive_file),
-      Node(
+      NodeModel(
         label: 'MeetingReport.pdf',
         key: 'mrpdf',
         // iconColor: Colors.green.shade300,
         // selectedIconColor: Colors.white,
         // icon: Icons.insert_drive_file
       ),
-      Node(label: 'Demo.zip', key: 'demo', icon: Icons.archive),
-      Node(
+      NodeModel(label: 'Demo.zip', key: 'demo', icon: Icons.archive),
+      NodeModel(
         label: 'empty folder',
         key: 'empty',
         parent: true,
@@ -150,14 +152,17 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  SwitchListTile _makeAllowParentSelect() {
+  SwitchListTile _makeAllowCheck() {
     return SwitchListTile.adaptive(
-      title: Text('Allow Parent Select'),
+      title: Text('Allow Check'),
       dense: true,
-      value: _allowParentSelect,
+      value: _allowCheck,
       onChanged: (v) {
         setState(() {
-          _allowParentSelect = v;
+          _allowCheck = v;
+          if(!v) {
+            _treeViewController = _treeViewController.withUnCheckAll();
+          }
         });
       },
     );
@@ -165,12 +170,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   SwitchListTile _makeSupportParentDoubleTap() {
     return SwitchListTile.adaptive(
-      title: Text('Support Parent Double Tap'),
+      title: Text('Support Parent secondary Tap'),
       dense: true,
-      value: _supportParentDoubleTap,
+      value: _supportParentSecondaryTap,
       onChanged: (v) {
         setState(() {
-          _supportParentDoubleTap = v;
+          _supportParentSecondaryTap = v;
         });
       },
     );
@@ -217,7 +222,7 @@ class _MyHomePageState extends State<MyHomePage> {
           position: _expanderPosition,
           // color: Colors.grey.shade800,
           size: 20,
-          color: Colors.blue),
+          color: Theme.of(context).primaryColor),
       labelStyle: TextStyle(
         fontSize: 16,
         letterSpacing: 0.3,
@@ -226,7 +231,7 @@ class _MyHomePageState extends State<MyHomePage> {
         fontSize: 16,
         letterSpacing: 0.1,
         fontWeight: FontWeight.w800,
-        color: Colors.blue.shade700,
+        color: Theme.of(context).primaryColor,
       ),
       iconTheme: IconThemeData(
         size: 18,
@@ -255,7 +260,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     _makeExpanderPosition(),
                     _makeExpanderType(),
                     _makeExpanderModifier(),
-                    _makeAllowParentSelect(),
+                    _makeAllowCheck(),
                     _makeSupportParentDoubleTap(),
                   ],
                 ),
@@ -266,23 +271,32 @@ class _MyHomePageState extends State<MyHomePage> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   padding: EdgeInsets.all(10),
-                  child: TreeView(
-                    allowCheck: true,
-                    controller: _treeViewController,
-                    allowParentSelect: _allowParentSelect,
-                    supportParentDoubleTap: _supportParentDoubleTap,
-                    onExpansionChanged: (key, expanded) =>
-                        _expandNode(key, expanded),
-                    onNodeCheck: (key, status) => _checkNode(key, status),
-                    onNodeTap: (key) {
-                      debugPrint('Selected: $key');
-                      setState(() {
-                        _selectedNode = key;
-                        _treeViewController =
-                            _treeViewController.copyWith(selectedKey: key);
-                      });
-                    },
-                    theme: _treeViewTheme,
+                  child: ContextMenuOverlay(
+                    child: TreeView(
+                      allowCheck: _allowCheck,
+                      controller: _treeViewController,
+                      supportParentSecondaryTap: _supportParentSecondaryTap,
+                      onExpansionChanged: (key, expanded) =>
+                          _expandNode(key, expanded),
+                      onNodeCheck: (key, status) => _checkNode(key, status),
+                      onNodeSecondaryTap: (key) {
+                        setState(() {
+                          _selectedNode = key;
+                          _treeViewController =
+                              _treeViewController.copyWith(selectedKey: key);
+                        });
+                      },
+                      onNodeTap: (key) {
+                        debugPrint('Selected: $key');
+                        setState(() {
+                          _selectedNode = key;
+                          _treeViewController = _treeViewController.copyWith(
+                              selectedKey: key,
+                              children: _treeViewController.toggleCheckNode(key));
+                        });
+                      },
+                      theme: _treeViewTheme,
+                    ),
                   ),
                 ),
               ),
@@ -345,7 +359,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 String deepKey = 'jh1b';
                 setState(() {
                   if (deepExpanded == false) {
-                    List<Node> newdata =
+                    List<NodeModel> newdata =
                         _treeViewController.expandToNode(deepKey);
                     _treeViewController =
                         _treeViewController.copyWith(children: newdata);
@@ -389,7 +403,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             onPressed: () {
                               if (editingController.text.isNotEmpty) {
                                 setState(() {
-                                  Node? _node =
+                                  NodeModel? _node =
                                       _treeViewController.selectedNode;
                                   _treeViewController =
                                       _treeViewController.withUpdateNode(
@@ -418,7 +432,6 @@ class _MyHomePageState extends State<MyHomePage> {
     // print(status);
     setState(() {
       _treeViewController = _treeViewController.withToggleCheckNode(key);
-      _treeViewController = _treeViewController.withUpdateParent(key);
     });
   }
 

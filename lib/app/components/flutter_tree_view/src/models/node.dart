@@ -16,12 +16,14 @@ enum CheckStatus { full, half, none }
 /// a node on the [TreeView] widget. The key and label properties are
 /// required. The key is needed for events that occur on the generated
 /// [TreeNode]. It should always be unique.
-class Node<T> {
+class NodeModel<T> {
   /// The unique string that identifies this object.
   final String key;
 
   /// The string value that is displayed on the [TreeNode].
   final String label;
+
+  final int? keyCount;
 
   /// An optional icon that is displayed on the [TreeNode].
   final IconData? icon;
@@ -44,16 +46,17 @@ class Node<T> {
   /// it useful to assign and retrieve data associated with the [TreeNode]
   final T? data;
 
-  /// The sub [Node]s of this object.
-  final List<Node> children;
+  /// The sub [NodeModel]s of this object.
+  final List<NodeModel> children;
 
   /// Force the node to be a parent so that node can show expander without
   /// having children node.
   final bool parent;
 
-  Node({
+  NodeModel({
     required this.key,
     required this.label,
+    this.keyCount,
     this.children = const [],
     this.expanded = false,
     this.parent = false,
@@ -64,26 +67,26 @@ class Node<T> {
     this.checkStatus = CheckStatus.none,
   });
 
-  /// Creates a [Node] from a string value. It generates a unique key.
-  static Node<T> fromLabel<T>(String label) {
+  /// Creates a [NodeModel] from a string value. It generates a unique key.
+  static NodeModel<T> fromLabel<T>(String label) {
     String _key = Utilities.generateRandom();
-    return Node<T>(
+    return NodeModel<T>(
       key: '${_key}_$label',
       label: label,
     );
   }
 
-  /// Creates a [Node] from a Map<String, dynamic> map. The map
+  /// Creates a [NodeModel] from a Map<String, dynamic> map. The map
   /// should contain a "label" value. If the key value is
   /// missing, it generates a unique key.
   /// If the expanded value, if present, can be any 'truthful'
   /// value. Excepted values include: 1, yes, true and their
   /// associated string values.
-  static Node<T> fromMap<T>(Map<String, dynamic> map) {
+  static NodeModel<T> fromMap<T>(Map<String, dynamic> map) {
     String? _key = map['key'];
     String _label = map['label'];
     var _data = map['data'];
-    List<Node> _children = [];
+    List<NodeModel> _children = [];
     if (_key == null) {
       _key = Utilities.generateRandom();
     }
@@ -101,7 +104,7 @@ class Node<T> {
     if (map['children'] != null) {
       List<Map<String, dynamic>> _childrenMap = List.from(map['children']);
       _children = _childrenMap
-          .map((Map<String, dynamic> child) => Node.fromMap(child))
+          .map((Map<String, dynamic> child) => NodeModel.fromMap(child))
           .toList();
     }
     var cs = CheckStatus.none;
@@ -114,7 +117,7 @@ class Node<T> {
     if(map['checkStatus'] == 'half') {
       cs = CheckStatus.half;
     }
-    return Node<T>(
+    return NodeModel<T>(
       key: '$_key',
       label: _label,
       data: _data,
@@ -127,19 +130,20 @@ class Node<T> {
 
   /// Creates a copy of this object but with the given fields
   /// replaced with the new values.
-  Node<T> copyWith({
+  NodeModel<T> copyWith({
     String? key,
     String? label,
-    List<Node>? children,
+    List<NodeModel>? children,
     bool? expanded,
     bool? parent,
     CheckStatus? checkStatus,
     IconData? icon,
     Color? iconColor,
+    int? keyCount,
     Color? selectedIconColor,
     T? data,
   }) =>
-      Node<T>(
+      NodeModel<T>(
         key: key ?? this.key,
         label: label ?? this.label,
         icon: icon ?? this.icon,
@@ -150,9 +154,10 @@ class Node<T> {
         parent: parent ?? this.parent,
         children: children ?? this.children,
         data: data ?? this.data,
+        keyCount: keyCount ?? this.keyCount,
       );
 
-  /// Whether this object has children [Node].
+  /// Whether this object has children [NodeModel].
   bool get isParent => children.isNotEmpty || parent;
 
   /// Whether this object has a non-null icon.
@@ -173,7 +178,7 @@ class Node<T> {
       "expanded": expanded,
       "checkStatus": checkStatus,
       "parent": parent,
-      "children": children.map((Node child) => child.asMap).toList(),
+      "children": children.map((NodeModel child) => child.asMap).toList(),
     };
     if (data != null) {
       _map['data'] = data as T;
@@ -206,7 +211,7 @@ class Node<T> {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other.runtimeType != runtimeType) return false;
-    return other is Node &&
+    return other is NodeModel &&
         other.key == key &&
         other.label == label &&
         other.icon == icon &&

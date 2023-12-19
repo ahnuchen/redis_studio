@@ -1,13 +1,52 @@
 import 'dart:math' show pi;
 
+import 'package:context_menus/context_menus.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:redis_studio/config/translations/strings_enum.dart';
 
 import 'tree_view.dart';
-import 'tree_view_theme.dart';
+import './tree_view_theme.dart';
 import 'expander_theme_data.dart';
 import 'models/node.dart';
 
 const double _kBorderWidth = 0.75;
+
+/// Wraps any widget in a GestureDetector and calls [ContextMenuOverlay].show
+class ContextMenuRegionCustom extends StatelessWidget {
+  const ContextMenuRegionCustom(
+      {Key? key,
+      required this.child,
+      required this.contextMenu,
+      this.isEnabled = true,
+      this.enableLongPress = true,
+      this.onSecondaryTap})
+      : super(key: key);
+  final Widget child;
+  final Widget contextMenu;
+  final bool isEnabled;
+  final bool enableLongPress;
+  final onSecondaryTap;
+
+  @override
+  Widget build(BuildContext context) {
+    void showMenu() {
+      // calculate widget position on screen
+      context.contextMenuOverlay.show(contextMenu);
+      if (onSecondaryTap != null) {
+        onSecondaryTap();
+      }
+    }
+
+    if (isEnabled == false) return child;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onSecondaryTap: showMenu,
+      onLongPress: enableLongPress ? showMenu : null,
+      child: child,
+    );
+  }
+}
 
 /// Defines the [TreeNode] widget.
 ///
@@ -21,7 +60,7 @@ const double _kBorderWidth = 0.75;
 /// of the nodes.
 class TreeNode extends StatefulWidget {
   /// The node object used to display the widget state
-  final Node node;
+  final NodeModel node;
 
   const TreeNode({Key? key, required this.node}) : super(key: key);
 
@@ -116,11 +155,13 @@ class _TreeNodeState extends State<TreeNode>
     }
   }
 
-  void _handleDoubleTap() {
+  void _handleSecondaryTap() {
     TreeView? _treeView = TreeView.of(context);
     assert(_treeView != null, 'TreeView must exist in context');
-    if (_treeView!.onNodeDoubleTap != null) {
-      _treeView.onNodeDoubleTap!(widget.node.key);
+    print('_handleSecondaryTap node:');
+    print('_handleSecondaryTap node end:');
+    if (_treeView!.onNodeSecondaryTap != null) {
+      _treeView.onNodeSecondaryTap!(widget.node.key);
     }
   }
 
@@ -176,6 +217,39 @@ class _TreeNodeState extends State<TreeNode>
     );
   }
 
+  buildChildWidget(String title, bool expandful) {
+    TreeView? _treeView = TreeView.of(context);
+    assert(_treeView != null, 'TreeView must exist in context');
+    TreeViewTheme _theme = _treeView!.theme;
+    bool isSelected = _treeView.controller.selectedKey != null &&
+        _treeView.controller.selectedKey == widget.node.key;
+    Widget txt = Text(
+      title,
+      softWrap: widget.node.isParent
+          ? _theme.parentLabelOverflow == null
+          : _theme.labelOverflow == null,
+      overflow: widget.node.isParent
+          ? _theme.parentLabelOverflow
+          : _theme.labelOverflow,
+      style: widget.node.isParent
+          ? _theme.parentLabelStyle.copyWith(
+              fontWeight: _theme.parentLabelStyle.fontWeight,
+              color: isSelected
+                  ? _theme.colorScheme.onPrimary
+                  : _theme.parentLabelStyle.color,
+            )
+          : _theme.labelStyle.copyWith(
+              fontWeight: _theme.labelStyle.fontWeight,
+              color: isSelected ? _theme.colorScheme.onPrimary : null,
+            ),
+    );
+    return expandful
+        ? Expanded(
+            child: txt,
+          )
+        : txt;
+  }
+
   Widget _buildNodeLabel() {
     TreeView? _treeView = TreeView.of(context);
     assert(_treeView != null, 'TreeView must exist in context');
@@ -183,39 +257,21 @@ class _TreeNodeState extends State<TreeNode>
     bool isSelected = _treeView.controller.selectedKey != null &&
         _treeView.controller.selectedKey == widget.node.key;
     // final icon = _buildNodeIcon();
+    List<Widget> cls = [
+      buildChildWidget(widget.node.label, true),
+    ];
+    if (widget.node.keyCount != null) {
+      cls.add(buildChildWidget('(${widget.node.keyCount.toString()})', false));
+    }
     return Container(
       padding: EdgeInsets.symmetric(
         vertical: _theme.verticalSpacing ?? (_theme.dense ? 10 : 15),
         horizontal: 0,
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          // icon,
-          Expanded(
-            child: Text(
-              widget.node.label,
-              softWrap: widget.node.isParent
-                  ? _theme.parentLabelOverflow == null
-                  : _theme.labelOverflow == null,
-              overflow: widget.node.isParent
-                  ? _theme.parentLabelOverflow
-                  : _theme.labelOverflow,
-              style: widget.node.isParent
-                  ? _theme.parentLabelStyle.copyWith(
-                      fontWeight: _theme.parentLabelStyle.fontWeight,
-                      color: isSelected
-                          ? _theme.colorScheme.onPrimary
-                          : _theme.parentLabelStyle.color,
-                    )
-                  : _theme.labelStyle.copyWith(
-                      fontWeight: _theme.labelStyle.fontWeight,
-                      color: isSelected ? _theme.colorScheme.onPrimary : null,
-                    ),
-            ),
-          ),
-        ],
+        children: cls,
       ),
     );
   }
@@ -237,14 +293,30 @@ class _TreeNodeState extends State<TreeNode>
       } else {
         _checkIcon = Icons.check_box_outline_blank;
       }
-      return IconButton(
-        onPressed: _handleCheck,
-        icon: Icon(
-          _checkIcon,
-          size: _theme.expanderTheme.size,
-          color: _theme.expanderTheme.color ?? Colors.black,
-        ),
-      );
+      return _treeView.onNodeSecondaryTap != null
+          ? ContextMenuRegionCustom(
+              onSecondaryTap: _handleSecondaryTap,
+              contextMenu: (widget.node.isParent
+                      ? _treeView.parentContextMenu
+                      : _treeView.childContextMenu) ??
+                  TextContextMenu(data: widget.node.label),
+              child: IconButton(
+                onPressed: _handleCheck,
+                icon: Icon(
+                  _checkIcon,
+                  size: _theme.expanderTheme.size,
+                  // color: _theme.expanderTheme.color ?? Colors.black,
+                ),
+              ),
+            )
+          : IconButton(
+              onPressed: _handleCheck,
+              icon: Icon(
+                _checkIcon,
+                size: _theme.expanderTheme.size,
+                color: _theme.expanderTheme.color ?? Colors.black,
+              ),
+            );
     }
   }
 
@@ -254,47 +326,56 @@ class _TreeNodeState extends State<TreeNode>
     TreeViewTheme _theme = _treeView!.theme;
     bool isSelected = _treeView.controller.selectedKey != null &&
         _treeView.controller.selectedKey == widget.node.key;
-    bool canSelectParent = _treeView.allowParentSelect;
+    bool canCheckParent = _treeView.allowCheck;
     final arrowContainer = _buildNodeExpander();
     final checkContainer = _buildNodeChecker();
     final labelContainer = _treeView.nodeBuilder != null
         ? _treeView.nodeBuilder!(context, widget.node)
         : _buildNodeLabel();
-    Widget _tappable = _treeView.onNodeDoubleTap != null
-        ? InkWell(
-            onTap: _handleTap,
-            onDoubleTap: _handleDoubleTap,
-            child: labelContainer,
+    Widget _tappable = _treeView.onNodeSecondaryTap != null
+        ? ContextMenuRegionCustom(
+            onSecondaryTap: _handleSecondaryTap,
+            contextMenu: _treeView.childContextMenu ??
+                TextContextMenu(data: widget.node.label),
+            child: InkWell(
+              onTap: _handleTap,
+              child: labelContainer,
+            ),
           )
         : InkWell(
             onTap: _handleTap,
             child: labelContainer,
           );
     if (widget.node.isParent) {
-      if (_treeView.supportParentDoubleTap && canSelectParent) {
-        _tappable = InkWell(
-          onTap: canSelectParent ? _handleTap : _handleExpand,
-          onDoubleTap: () {
-            _handleExpand();
-            _handleDoubleTap();
-          },
-          child: labelContainer,
+      if (_treeView.supportParentSecondaryTap && canCheckParent) {
+        _tappable = ContextMenuRegionCustom(
+          onSecondaryTap: _handleSecondaryTap,
+          contextMenu: _treeView.parentContextMenu ??
+              TextContextMenu(data: widget.node.label),
+          child: InkWell(
+            onTap: canCheckParent ? _handleTap : _handleExpand,
+            child: labelContainer,
+          ),
         );
-      } else if (_treeView.supportParentDoubleTap) {
-        _tappable = InkWell(
-          onTap: _handleExpand,
-          onDoubleTap: _handleDoubleTap,
-          child: labelContainer,
+      } else if (_treeView.supportParentSecondaryTap) {
+        _tappable = ContextMenuRegionCustom(
+          onSecondaryTap: _handleSecondaryTap,
+          contextMenu: _treeView.parentContextMenu ??
+              TextContextMenu(data: widget.node.label),
+          child: InkWell(
+            onTap: _handleExpand,
+            child: labelContainer,
+          ),
         );
       } else {
         _tappable = InkWell(
-          onTap: canSelectParent ? _handleTap : _handleExpand,
+          onTap: canCheckParent ? _handleTap : _handleExpand,
           child: labelContainer,
         );
       }
     }
     return Container(
-      color: isSelected ? _theme.colorScheme.primary : null,
+      color: isSelected ? _theme.colorScheme.primary.withOpacity(0.5) : null,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -349,7 +430,7 @@ class _TreeNodeState extends State<TreeNode>
                             _treeView.theme.iconTheme.size!),
                     child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: widget.node.children.map((Node node) {
+                        children: widget.node.children.map((NodeModel node) {
                           return TreeNode(node: node);
                         }).toList()),
                   ),

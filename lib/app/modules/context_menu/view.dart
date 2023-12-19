@@ -1,13 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:context_menus/context_menus.dart';
 import 'package:flutter/services.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:get/get.dart';
+import 'package:flutter/widgets.dart';
+
+/// Wraps any widget in a GestureDetector and calls [ContextMenuOverlay].show
+class ContextMenuRegionCustom extends StatelessWidget {
+  const ContextMenuRegionCustom(
+      {Key? key, required this.child, required this.contextMenu, this.isEnabled = true, this.enableLongPress = true, this.onSecondaryTap})
+      : super(key: key);
+  final Widget child;
+  final Widget contextMenu;
+  final bool isEnabled;
+  final bool enableLongPress;
+  final onSecondaryTap;
+  @override
+  Widget build(BuildContext context) {
+    void showMenu() {
+      // calculate widget position on screen
+      context.contextMenuOverlay.show(contextMenu);
+      if(onSecondaryTap != null) {
+        onSecondaryTap();
+      }
+    }
+
+    if (isEnabled == false) return child;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onSecondaryTap: showMenu,
+      onLongPress: enableLongPress ? showMenu : null,
+      child: child,
+    );
+  }
+}
+
+
 class ContextMenuPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('contextmenu'),),
+      appBar: AppBar(
+        title: Text('contextmenu'),
+      ),
       body: Column(
         children: const [
           Expanded(child: DefaultMenuTests()),
@@ -19,13 +54,13 @@ class ContextMenuPage extends StatelessWidget {
   }
 }
 
-
 /// Presents the tests with default styling
 class DefaultMenuTests extends StatelessWidget {
   const DefaultMenuTests({super.key});
 
   @override
-  Widget build(BuildContext context) => ContextMenuOverlay(child: const TestContent(title: "Default Menus"));
+  Widget build(BuildContext context) =>
+      ContextMenuOverlay(child: const TestContent(title: "Default Menus"));
 }
 
 class StyledMenuTests extends StatelessWidget {
@@ -55,20 +90,24 @@ class CustomMenuTests extends StatelessWidget {
   Widget build(BuildContext context) {
     return ContextMenuOverlay(
       /// Make a custom background
-      cardBuilder: (_, children) => Container(color: Colors.purple.shade100, child: Column(children: children)),
+      cardBuilder: (_, children) => Container(
+          color: Colors.purple.shade100, child: Column(children: children)),
 
       /// Make custom buttons
       buttonBuilder: (_, config, [__]) => TextButton(
         onPressed: config.onPressed,
         child: SizedBox(width: double.infinity, child: Text(config.label)),
       ),
-      child: Container(color: Colors.blue.shade200, child: const TestContent(title: "Custom Menus")),
+      child: Container(
+          color: Colors.blue.shade200,
+          child: const TestContent(title: "Custom Menus")),
     );
   }
 }
 
 class TestContent extends StatelessWidget {
   const TestContent({super.key, required this.title});
+
   final String title;
   final String _testImageUrl =
       "https://images.unsplash.com/photo-1590005354167-6da97870c757?auto=format&fit=crop&w=100&q=80";
@@ -89,11 +128,12 @@ class TestContent extends StatelessWidget {
           /// Example hyperlink menu
           ContextMenuRegion(
             contextMenu: const LinkContextMenu(url: 'http://flutter.dev'),
-            child: TextButton(onPressed: () {}, child: const Text("http://flutter.dev")),
+            child: TextButton(
+                onPressed: () {}, child: const Text("http://flutter.dev")),
           ),
 
           /// Custom Context Menu for an Image
-          ContextMenuRegion(
+          ContextMenuRegionCustom(
             contextMenu: GenericContextMenu(
               buttonConfigs: [
                 ContextMenuButtonConfig(
@@ -102,11 +142,15 @@ class TestContent extends StatelessWidget {
                 ),
                 ContextMenuButtonConfig(
                   "Copy image path",
-                  onPressed: () => Clipboard.setData(ClipboardData(text: _testImageUrl)),
+                  onPressed: () =>
+                      Clipboard.setData(ClipboardData(text: _testImageUrl)),
                 )
               ],
             ),
             child: Image.network(_testImageUrl),
+            onSecondaryTap: (){
+              showToast('按钮');
+            },
           ),
         ],
       ),

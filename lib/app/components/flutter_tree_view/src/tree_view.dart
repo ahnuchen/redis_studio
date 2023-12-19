@@ -1,7 +1,8 @@
+import 'package:context_menus/context_menus.dart';
 import 'package:flutter/material.dart';
 
 import 'tree_view_controller.dart';
-import 'tree_view_theme.dart';
+import './tree_view_theme.dart';
 import 'tree_node.dart';
 import 'models/node.dart';
 
@@ -33,10 +34,10 @@ class TreeView extends InheritedWidget {
   final Function(String)? onNodeTap;
 
   /// Custom builder for nodes. Parameters are the build context and tree node.
-  final Widget Function(BuildContext, Node)? nodeBuilder;
+  final Widget Function(BuildContext, NodeModel)? nodeBuilder;
 
   /// The double tap handler for a node. Passes the node key.
-  final Function(String)? onNodeDoubleTap;
+  final Function(String)? onNodeSecondaryTap;
 
   /// The expand/collapse handler for a node. Passes the node key and the
   /// expansion state.
@@ -50,8 +51,6 @@ class TreeView extends InheritedWidget {
   /// tapping the parent will expand or collapse the node. If true, the node
   /// will be selected and the use has to use the expander to expand or
   /// collapse the node.
-  final bool allowParentSelect;
-
   /// How the [TreeView] should respond to user input.
   final ScrollPhysics? physics;
 
@@ -75,20 +74,24 @@ class TreeView extends InheritedWidget {
   /// _When true, the tap handler is delayed. This is because the double tap
   /// action requires a short delay to determine whether the user is attempting
   /// a single or double tap._
-  final bool supportParentDoubleTap;
+  final bool supportParentSecondaryTap;
 
   final bool allowCheck;
+
+  final GenericContextMenu? parentContextMenu;
+  final GenericContextMenu? childContextMenu;
 
   TreeView({
     Key? key,
     required this.controller,
     this.onNodeTap,
-    this.onNodeDoubleTap,
+    this.onNodeSecondaryTap,
     this.physics,
     this.onExpansionChanged,
+    this.parentContextMenu,
+    this.childContextMenu,
     this.onNodeCheck,
-    this.allowParentSelect = false,
-    this.supportParentDoubleTap = false,
+    this.supportParentSecondaryTap = false,
     this.shrinkWrap = false,
     this.primary = true,
     this.allowCheck = false,
@@ -114,9 +117,8 @@ class TreeView extends InheritedWidget {
         oldWidget.onNodeTap != this.onNodeTap ||
         oldWidget.onExpansionChanged != this.onExpansionChanged ||
         oldWidget.theme != this.theme ||
-        oldWidget.supportParentDoubleTap != this.supportParentDoubleTap ||
-        oldWidget.allowCheck != this.allowCheck ||
-        oldWidget.allowParentSelect != this.allowParentSelect;
+        oldWidget.supportParentSecondaryTap != this.supportParentSecondaryTap ||
+        oldWidget.allowCheck != this.allowCheck;
   }
 }
 
@@ -139,7 +141,7 @@ class _TreeViewData extends StatelessWidget {
         primary: primary,
         physics: physics,
         padding: EdgeInsets.zero,
-        children: _controller.children.map((Node node) {
+        children: _controller.children.map((NodeModel node) {
           return TreeNode(node: node);
         }).toList(),
       ),

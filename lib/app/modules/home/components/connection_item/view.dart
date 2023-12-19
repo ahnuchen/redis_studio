@@ -4,9 +4,9 @@ import 'package:get/get.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:redis/redis.dart';
 import 'package:redis_studio/app/data/models/connections_model.dart';
+import 'package:redis_studio/app/modules/home/components/key_list/view.dart';
 import 'package:redis_studio/config/translations/strings_enum.dart';
 import 'package:redis_studio/utils/redis_commands.dart';
-
 import '../../../../data/local/redis_connnect.dart';
 
 class ConnectionItemComponent extends StatefulWidget {
@@ -23,8 +23,9 @@ class ConnectionItemComponent extends StatefulWidget {
 class _ConnectionItemComponentState extends State<ConnectionItemComponent> {
   ExpandableController expandController =
       ExpandableController(initialExpanded: false);
+  GlobalKey<KeyListState> keyListState = GlobalKey<KeyListState>();
+
   final _connect = RedisConnect();
-  List allKeys = [];
   EnhanceCommand? command;
   int dbsCount = 1;
   int selectedDb = 0;
@@ -37,22 +38,12 @@ class _ConnectionItemComponentState extends State<ConnectionItemComponent> {
       isExactSearch = !isExactSearch;
     });
   }
-
-  scanAllKeys() {
-    command?.scan(500).then((value) {
-      setState(() {
-        print(value);
-        allKeys = value[1];
-      });
-    });
-  }
-
   onDbChange(v) {
     setState(() {
       selectedDb = v!;
     });
     command?.command.send_object(['select', v!]).then((value) {
-      scanAllKeys();
+      keyListState.currentState?.scanAllKeys(command);
     });
   }
 
@@ -74,42 +65,38 @@ class _ConnectionItemComponentState extends State<ConnectionItemComponent> {
       if (expandController.expanded) {
         if (command == null) {
           _connect.createConnection(cfg).then((value) {
-            command = EnhanceCommand(value);
-            scanAllKeys();
-            getAllDatabases();
+            setState(() {
+              command = EnhanceCommand(value);
+              keyListState.currentState?.scanAllKeys(command);
+              getAllDatabases();
+            });
           }).catchError((err) {
             print('Errorrrrrrrr: $err'); // Prints 401.
             showToast(err.toString());
             expandController.expanded = false;
           });
         } else {
-          scanAllKeys();
+          keyListState.currentState?.scanAllKeys(command);
         }
       }
     });
   }
+
+  @override
+  dispose(){
+    setState(() {
+      command?.command.get_connection().close();
+      command = null;
+    });
+    super.dispose();
+  }
+
 
   buildDbSelect() {
     return List.generate(dbsCount, (index) => index)
         .map((e) => DropdownMenuItem(
               child: Text('db$e'),
               value: e,
-            ))
-        .toList();
-  }
-
-  List<Widget> getAllKeysList() {
-    if (allKeys.length == 0) {
-      return [
-        Padding(
-          padding: const EdgeInsets.all(18.0),
-          child: Text(Strings.tree_emptyText.tr),
-        )
-      ];
-    }
-    return allKeys
-        .map((e) => ListTile(
-              title: Text(e),
             ))
         .toList();
   }
@@ -192,7 +179,10 @@ class _ConnectionItemComponentState extends State<ConnectionItemComponent> {
                   ),
                 ],
               ),
-              ...getAllKeysList()
+              Row(
+                children: <Widget>[ KeyList(key: keyListState, command:command,),],
+              ),
+
             ],
           ),
           header: Text(cfg.name ?? '${cfg.host}:${cfg.port}'),
